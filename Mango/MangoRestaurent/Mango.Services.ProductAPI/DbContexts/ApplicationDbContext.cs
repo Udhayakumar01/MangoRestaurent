@@ -1,4 +1,4 @@
-﻿using Mango.Services.ProductAPI.Model;
+﻿using Mango.Services.ProductAPI.Model.Dto;
 using Microsoft.EntityFrameworkCore;
 
 namespace Mango.Services.ProductAPI.DbContexts
