@@ -2,12 +2,11 @@
 using Mango.Services.CouponAPI.Data;
 using Mango.Services.CouponAPI.Models;
 using Mango.Services.CouponAPI.Models.DTO;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Mango.Services.CouponAPI.Controllers
 {
-    [Route("api/[controller]")]
+    [Route("api/couponApi")]
     [ApiController]
     public class CouponAPIController : ControllerBase
     {
@@ -99,6 +98,24 @@ namespace Mango.Services.CouponAPI.Controllers
                 _db.SaveChanges();
                 _response.Result = _mapper.Map<CouponDto>(coupon);
                 return Ok(_response);
+            }
+            catch (Exception ex)
+            {
+                _response.Message = ex.Message;
+                _response.IsSuccess = false;
+            }
+            return Ok(_response);
+        }
+
+        [HttpDelete]
+        [Route("{id:int}")]
+        public IActionResult Delete(int id)
+        {
+            try
+            {
+                Coupon coupons = _db.Coupons.First(c => c.CouponId == id);
+                _db.Coupons.Remove(coupons);
+                _db.SaveChanges();
             }
             catch (Exception ex)
             {

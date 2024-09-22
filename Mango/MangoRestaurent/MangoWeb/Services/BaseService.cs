@@ -9,22 +9,22 @@ namespace MangoWeb.Services
     public class BaseService : IBaseService
     {
         public ResponseDto ResponseDto { get; set; }
-        public IHttpClientFactory httpClient { get; set; }
+        public IHttpClientFactory _httpClient { get; set; }
         public BaseService(IHttpClientFactory httpClient)
         {
             this.ResponseDto = new ResponseDto();
-            this.httpClient = httpClient;
+            this._httpClient = httpClient;
         }
         public void Dispose()
         {
             GC.SuppressFinalize(true);
         }
 
-        public async Task<T> SendAsync<T>(ApiRequest apiRequest)
+        public async Task<ResponseDto> SendAsync(ApiRequest apiRequest)
         {
             try
             {
-                var client = httpClient.CreateClient("MangoAPI");
+                var client = _httpClient.CreateClient("MangoAPI");
                 HttpRequestMessage message = new HttpRequestMessage();
                 message.Headers.Add("Accept","application/json");
                 message.RequestUri = new Uri(apiRequest.ApiUrl);
@@ -50,21 +50,32 @@ namespace MangoWeb.Services
                         break;
                 }
                 apiResponse = await client.SendAsync(message);
-
-                var apiContent = await apiResponse.Content.ReadAsStringAsync();
-                var apiResponseDto = JsonConvert.DeserializeObject<T>(apiContent);
-                return apiResponseDto;
+                switch(apiResponse.StatusCode)
+                {
+                    case System.Net.HttpStatusCode.NotFound:
+                        return new() { IsSuccess = false, ErrorMessage = "Method Not Found" };
+                    case System.Net.HttpStatusCode.Forbidden:
+                        return new() { IsSuccess = false, ErrorMessage = "Access Denied" };
+                    case System.Net.HttpStatusCode.Unauthorized:
+                        return new() { IsSuccess = false, ErrorMessage = "Unauthorized" };
+                    case System.Net.HttpStatusCode.InternalServerError:
+                        return new() { IsSuccess = false, ErrorMessage = "Internal Server Error" };
+                    default:
+                        var apiContent = await apiResponse.Content.ReadAsStringAsync();
+                        var apiResponseDto = JsonConvert.DeserializeObject<ResponseDto>(apiContent);
+                        return apiResponseDto;
+                }
+                
             }
             catch(Exception ex)
             {
                 var dto = new ResponseDto
                 {
-                    DisplayMessage = "Error",
-                    ErrorMessage = new List<string> { ex.ToString() },
+                    ErrorMessage = ex.Message.ToString(),
                     IsSuccess = false
                 };
                 var res = JsonConvert.SerializeObject(dto);
-                var apiResponseDto = JsonConvert.DeserializeObject<T>(res);
+                var apiResponseDto = JsonConvert.DeserializeObject<ResponseDto>(res);
                 return apiResponseDto;
             }
         }
